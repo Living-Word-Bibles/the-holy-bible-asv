@@ -7,10 +7,12 @@ import { fileURLToPath } from "url";
 
 // -------- Config --------
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.join(__dirname, "dist");
+const OUT_DIR   = path.join(__dirname, "dist");
 
-// If you have the ASV JSON locally, point DATA_DIR to it; otherwise we'll fetch from BASES.
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "ASV", "ASV_books");
+// If you have the ASV JSON locally, put it here (mirrors KJV layout convention):
+//   ./Bible-asv-master/Books.json
+//   ./Bible-asv-master/Genesis.json  ...  ./Bible-asv-master/Revelation.json
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "Bible-asv-master");
 
 // Public site + CNAME for GitHub Pages
 const SITE  = process.env.SITE  || "https://asv.the-holy-bible.online";
@@ -20,12 +22,16 @@ const CNAME = process.env.CNAME || "asv.the-holy-bible.online";
 const LOGO_URL  = "https://static1.squarespace.com/static/68d6b7d6d21f02432fd7397b/t/690209b3567af44aabfbdaca/1761741235124/LivingWordBibles01.png";
 const FONT_LINK = `<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">`;
 
-// Remote fallbacks for ASV data (if ./ASV/ASV_books not present)
+// Remote fallbacks for ASV data.
+// We try your repo first in two common layouts, then a known community mirror.
 const BASES = [
-  // Your repo (preferred)
+  // Your repo (preferred) — "Bible-asv-master" shape
+  "https://cdn.jsdelivr.net/gh/Living-Word-Bibles/the-holy-bible-asv@main/Bible-asv-master/",
+  "https://raw.githubusercontent.com/Living-Word-Bibles/the-holy-bible-asv/main/Bible-asv-master/",
+  // Your repo (alternate) — "ASV/ASV_books" shape
   "https://cdn.jsdelivr.net/gh/Living-Word-Bibles/the-holy-bible-asv@main/ASV/ASV_books/",
   "https://raw.githubusercontent.com/Living-Word-Bibles/the-holy-bible-asv/main/ASV/ASV_books/",
-  // Community mirrors (structure is Genesis.json, Exodus.json, ... in /json/ASV/)
+  // Community mirror
   "https://cdn.jsdelivr.net/gh/scrollmapper/bible_databases@master/json/ASV/",
   "https://raw.githubusercontent.com/scrollmapper/bible_databases/master/json/ASV/"
 ];
@@ -36,7 +42,7 @@ const NT = ['Matthew','Mark','Luke','John','Acts','Romans','1 Corinthians','2 Co
 
 // -------- Utils --------
 const slugify = (s)=>String(s).trim().toLowerCase().replace(/[^a-z0-9\s]/g,"").replace(/\s+/g,"-");
-// e.g., Song of Solomon -> SongofSolomon.json
+// e.g., Song of Solomon -> SongofSolomon.json (matches your KJV convention)
 const fileFromName = (name)=>String(name).replace(/[^0-9A-Za-z]/g,"") + ".json";
 const escapeHtml = (s)=>String(s)
   .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -69,7 +75,7 @@ async function loadJSON(rel){
     const u = base + rel;
     try { return await fetchJSON(u); }
     catch(e){ lastErr = e.message; }
-    await sleep(50);
+    await sleep(30);
   }
   throw new Error(`Unable to load ${rel}. ${lastErr||""}`);
 }
@@ -251,7 +257,7 @@ function pageHTML({bookName, bookSlug, chapter, verse, verseText, totalVerses, p
   const ref = {bookSlug, chapter, verse};
   const can = canonicalUrl(ref);
   const title = `The Holy Bible (ASV): ${bookName} ${chapter}:${verse}`;
-  const desc = `${bookName} ${chapter}:${verse} (ASV) — ${verseText.slice(0,160)}`;
+  const desc  = `${bookName} ${chapter}:${verse} (ASV) — ${verseText.slice(0,160)}`;
   const share = shareLinks(ref, bookName, verseText);
   const prevLink = prevRef ? `<link rel="prev" href="${verseUrl(prevRef)}">` : "";
   const nextLink = nextRef ? `<link rel="next" href="${verseUrl(nextRef)}">` : "";
